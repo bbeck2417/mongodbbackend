@@ -1,6 +1,6 @@
 const express = require("express");
 const cors = require("cors");
-const port = 3100;
+const port = process.env.PORT || 3100;
 const app = express();
 const bodyParser = require("body-parser");
 const Song = require("./models/songs");
