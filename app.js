@@ -52,23 +52,26 @@ router.post("/songs", async (req, res) => {
     const savedSong = await newSong.save();
 
     res.status(201).json(savedSong);
-    res.sendStatus(204);
+    // Deleted res.sendStatus(204) here!
   } catch (err) {
     res.status(400).send(err);
   }
 });
 
-// update is ato update an existing record/resource/database entry
-router.put("/:id", async (req, res) => {
-  //first find the song we need to update. to do this we need to request the id of the song from request and update the database
+// Added the forward slash here!
+router.put("/songs/:id", async (req, res) => {
   try {
     const song = req.body;
     await Song.updateOne({ _id: req.params.id }, song);
+
     console.log(song);
+    // Added this response so the frontend knows it was successful!
+    res.sendStatus(200);
   } catch (err) {
     res.status(400).send(err);
   }
 });
+
 app.use("/api", router);
 app.listen(port, function () {
   console.log(`Listening on port ${port}.`);
