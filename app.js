@@ -73,6 +73,15 @@ router.delete("/songs/:id", async (req, res) => {
     res.status(400).send("Invalid ID");
   }
 });
+router.post("/songs", async (req, res) => {
+  try {
+    const newSong = new Song(req.body);
+    await newSong.save();
+    res.status(201).json(newSong);
+  } catch (err) {
+    res.status(400).send("Invalid song data");
+  }
+});
 
 app.use("/api", router);
 app.listen(port, () => console.log(`Server running on port ${port}`));
