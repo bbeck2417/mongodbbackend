@@ -82,6 +82,23 @@ router.post("/songs", async (req, res) => {
     res.status(400).send("Invalid song data");
   }
 });
+router.put("/songs/:id", async (req, res) => {
+  try {
+    const updatedSong = await Song.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true, runValidators: true }, // returns the updated document and runs validation
+    );
+
+    if (!updatedSong) {
+      return res.status(404).send("Song not found");
+    }
+
+    res.json(updatedSong);
+  } catch (err) {
+    res.status(400).send("Update failed: " + err.message);
+  }
+});
 
 app.use("/api", router);
 app.listen(port, () => console.log(`Server running on port ${port}`));
