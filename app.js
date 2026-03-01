@@ -1,78 +1,69 @@
 const express = require("express");
 const cors = require("cors");
-const port = process.env.PORT || 3100;
-const app = express();
-const bodyParser = require("body-parser");
+const bcrypt = require("bcrypt");
+const jwt = require("jwt-simple");
 const Song = require("./models/songs");
+const User = require("./models/user");
+
+const app = express();
+const port = process.env.PORT || 3100;
+const secret = process.env.SESSION_SECRET || "defaultsecretkey";
+
 app.use(cors());
-app.use(bodyParser.json());
+app.use(express.json()); // Built-in alternative to body-parser
+
 const router = express.Router();
 
-//grab all the songs in a database
-// router.get("/songs", (req, res) => {
-//     let query = {};
-//     if (req.query.genre){
-//         query = {genre : req.query.genre}
-//     }
-//     // to find all songs just use the find() method built into mongoose
-//      Song.find(query, (err, songs) => {
-//         if (err) {
-//             res.status(400).send(err)
-//         }
-//         else {
-//             res.json(songs)
-//         }
-//      })
-// })
-router.get("/songs/:id", async (req, res) => {
+// --- USER REGISTRATION ---
+router.post("/user", async (req, res) => {
   try {
-    const song = await Song.findById(req.params.id);
-    res.json(song);
+    const { username, password } = req.body;
+    const passwordHash = await bcrypt.hash(password, 10);
+    const newUser = new User({ username, passwordHash });
+    await newUser.save();
+    res.status(201).json({ message: "User created" });
   } catch (err) {
-    res.status(400).send(err);
+    res.status(400).send(err.message);
   }
 });
-router.get("/songs", async (req, res) => {
-  let query = {};
-  if (req.query.genre) {
-    query = { genre: req.query.genre };
-  }
 
+// --- LOGIN ---
+router.post("/login", async (req, res) => {
   try {
+    const { username, password } = req.body;
+    const user = await User.findOne({ username });
+
+    if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
+      return res.status(401).send("Invalid credentials");
+    }
+
+    const token = jwt.encode({ id: user._id }, secret);
+    res.json({ token });
+  } catch (err) {
+    res.status(400).send("Login failed"); // Fixed .status()
+  }
+});
+
+// --- SONGS CRUD ---
+router.get("/songs", async (req, res) => {
+  try {
+    const query = req.query.genre ? { genre: req.query.genre } : {};
     const songs = await Song.find(query);
     res.json(songs);
   } catch (err) {
-    res.status(400).send(err);
+    res.status(500).send(err);
   }
 });
 
-router.post("/songs", async (req, res) => {
+router.delete("/songs/:id", async (req, res) => {
   try {
-    const newSong = new Song(req.body);
-    const savedSong = await newSong.save();
-
-    res.status(201).json(savedSong);
-    // Deleted res.sendStatus(204) here!
-  } catch (err) {
-    res.status(400).send(err);
-  }
-});
-
-// Added the forward slash here!
-router.put("/songs/:id", async (req, res) => {
-  try {
-    const song = req.body;
-    await Song.updateOne({ _id: req.params.id }, song);
-
-    console.log(song);
-    // Added this response so the frontend knows it was successful!
+    const result = await Song.deleteOne({ _id: req.params.id });
+    if (result.deletedCount === 0) return res.status(404).send("Not found");
     res.sendStatus(200);
   } catch (err) {
-    res.status(400).send(err);
+    res.status(400).send("Invalid ID");
   }
 });
 
 app.use("/api", router);
-app.listen(port, function () {
-  console.log(`Listening on port ${port}.`);
-});
+app.listen(port, () => console.log(`Server running on port ${port}`));
