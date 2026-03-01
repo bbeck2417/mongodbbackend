@@ -55,6 +55,15 @@ router.get("/songs", async (req, res) => {
   }
 });
 
+router.get("/songs/:id", async (req, res) => {
+  try {
+    const song = await Song.findById(req.params.id);
+    if (!song) return res.status(404).send("Song not found");
+    res.json(song);
+  } catch (err) {
+    res.status(400).send("Invalid ID format");
+  }
+});
 router.delete("/songs/:id", async (req, res) => {
   try {
     const result = await Song.deleteOne({ _id: req.params.id });
